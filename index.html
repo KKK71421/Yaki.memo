@@ -24,28 +24,13 @@
             padding-top: 12px;
             padding-bottom: 4px;
         }
-        /* 入力欄のフォーカス時に青枠をクッキリ見せる */
-        input:focus {
-            border-color: #007AFF !important;
-            outline: none;
-        }
     </style>
 </head>
 <body class="p-4 pb-12 select-none">
 
 <div id="app" class="max-w-md mx-auto">
     
-    <div id="lock-screen" class="flex flex-col items-center justify-center min-h-[80vh]">
-        <div class="bg-white rounded-2xl p-8 w-full text-center shadow-sm">
-            <div class="text-4xl mb-4">🔒</div>
-            <h2 class="text-lg font-bold text-gray-800 mb-6">合言葉を入力してください</h2>
-            <input type="password" id="password-input" class="w-full p-4 border border-gray-200 rounded-xl mb-4 text-center text-2xl bg-gray-50 tracking-widest" placeholder="••••">
-            <button onclick="checkPassword()" class="w-full py-4 bg-[#007AFF] text-white rounded-xl font-bold text-md active:opacity-80 transition-opacity">認証する</button>
-            <p id="error-msg" class="mt-4 text-sm text-red-500 font-bold hidden">合言葉が違います</p>
-        </div>
-    </div>
-
-    <div id="main-content" class="hidden">
+    <div id="main-content">
         <header class="flex items-center justify-between mb-5 px-1">
             <button id="back-btn" onclick="goBack()" class="text-[#007AFF] font-bold text-md hidden flex items-center">
                 ‹ 戻る
@@ -66,38 +51,16 @@
             <button onclick="openCategory('ポーション')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
                 <span>⚖️ ポーション</span><span class="text-gray-300">›</span>
             </button>
-            <button onclick="openCategory('シフト表')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
-                <span>📅 シフト表</span><span class="text-gray-300">›</span>
-            </button>
         </div>
 
         <div id="list-view" class="hidden space-y-2">
             <div id="accordion-container" class="space-y-2"></div>
         </div>
-
-        <div id="shift-view" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl p-4 shadow-sm text-center">
-                <span class="text-[11px] font-bold text-purple-600 block mb-3 bg-purple-50 py-1 rounded-full">2024/03/12 18:00 更新</span>
-                <div class="space-y-4 text-left">
-                    <div>
-                        <span class="text-xs font-bold text-gray-400 block mb-1">▼ 1日 〜 15日</span>
-                        <img src="https://drive.google.com/thumbnail?authuser=0&sz=w1000&id=1zHH3IqT30XMp83ft2s6X7oAM-8ySHNNP" class="w-full h-auto rounded-xl border border-gray-100" alt="前半シフト">
-                    </div>
-                    <div>
-                        <span class="text-xs font-bold text-gray-400 block mb-1">▼ 16日 〜 末日</span>
-                        <img src="https://drive.google.com/thumbnail?authuser=0&sz=w1000&id=1J-N8B4IvyShS9qhQTNpTsvL67wxqFihk" class="w-full h-auto rounded-xl border border-gray-100" alt="後半シフト">
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 
 <script>
-    const CORRECT_PASSWORD = "1405";
-
-    // 業務データ（シンプルで見やすいテキストに変更）
+    // 業務データ
     const data = {
         "刺し場": [
             { name: "枝豆", type: "text", text: "500Wで2分温め、皿に盛って塩をふる" },
@@ -106,7 +69,7 @@
             { name: "チャンジャ", type: "text", text: "半分にした大葉を敷き、30g盛り付け。ネギを散らす" },
             { name: "とりかわぽん", type: "steps", steps: ["大葉を敷く", "オニオンスライスを乗せる", "とりかわを盛り付ける", "ネギ、大根おろしを乗せ、ポン酢をかける"] },
             { name: "えのきぽん", type: "steps", steps: ["500Wで1分温める", "えのきを盛り付ける", "ネギ、大根おろしを乗せ、ポン酢をかける"] },
-            { name: "無限ピーマン", type: "text", text: "ごま油、塩、塩昆布、白ごまで和える" },
+            { name: "無限ピーマン", type: "text", text: "ごま油、塩、塩昆布、白ご目で和える" },
             { name: "漬物盛合せ", type: "text", text: "たくあん30g、かっぱ30g、しば漬け30g" },
             { name: "長芋わさび", type: "text", text: "器に長いもを80g盛り、刻みのりを乗せる" },
             { name: "たたききゅうり", type: "steps", steps: ["皿にたたききゅうりを盛る", "しおだれをかける", "ゴマを振る"] },
@@ -144,26 +107,10 @@
         ]
     };
 
-    function checkPassword() {
-        const input = document.getElementById('password-input').value;
-        if (input === CORRECT_PASSWORD) {
-            document.getElementById('lock-screen').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-        } else {
-            const error = document.getElementById('error-msg');
-            error.classList.remove('hidden');
-        }
-    }
-
     function openCategory(catName) {
         document.getElementById('menu-categories').classList.add('hidden');
         document.getElementById('page-title').textContent = catName;
         document.getElementById('back-btn').classList.remove('hidden');
-
-        if (catName === "シフト表") {
-            document.getElementById('shift-view').classList.remove('hidden');
-            return;
-        }
 
         const container = document.getElementById('accordion-container');
         container.innerHTML = '';
@@ -199,7 +146,6 @@
             btn.onclick = () => {
                 const isOpen = content.classList.contains('open');
                 
-                // 他の開いているアコーディオンを全部閉じる
                 document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
                 document.querySelectorAll('.arrow').forEach(a => a.style.transform = 'rotate(0deg)');
 
@@ -218,7 +164,6 @@
     function goBack() {
         document.getElementById('menu-categories').classList.remove('hidden');
         document.getElementById('list-view').classList.add('hidden');
-        document.getElementById('shift-view').classList.add('hidden');
         document.getElementById('back-btn').classList.add('hidden');
         document.getElementById('page-title').textContent = "キッチンメモ";
     }
