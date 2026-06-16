@@ -2,300 +2,226 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>キッチン手順 確認アプリ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>キッチンメモ</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: #f0f2f5; color: #1f2937; }
-        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        /* アコーディオン展開用のアニメーション */
-        .accordion-content { 
-            max-height: 0; 
-            overflow: hidden; 
-            transition: max-height 0.3s ease-out, opacity 0.2s; 
-            opacity: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F2F2F7; /* iOS標準の薄いグレー */
+            -webkit-tap-highlight-color: transparent;
         }
-        .accordion-content.open { 
-            max-height: 1000px; 
-            opacity: 1; 
-            padding-bottom: 16px;
+        /* スムーズな開閉アニメーション */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease-out, opacity 0.2s;
+            opacity: 0;
         }
-        .menu-item.active { background-color: #f8fafc; }
-        .step-bubble { background: #f8fafc; border-left: 6px solid #3b82f6; }
-        .portion-row { border-bottom: 1px inset #f1f5f9; padding: 8px 0; }
-        .shake { animation: shake 0.5s; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .accordion-content.open {
+            max-height: 800px;
+            opacity: 1;
+            padding-top: 12px;
+            padding-bottom: 4px;
+        }
+        /* 入力欄のフォーカス時に青枠をクッキリ見せる */
+        input:focus {
+            border-color: #007AFF !important;
+            outline: none;
+        }
     </style>
 </head>
-<body class="p-4 pb-12">
+<body class="p-4 pb-12 select-none">
 
 <div id="app" class="max-w-md mx-auto">
     
     <div id="lock-screen" class="flex flex-col items-center justify-center min-h-[80vh]">
-        <div class="card p-8 w-full text-center">
-            <div class="mb-6 text-5xl text-blue-500">🔒</div>
-            <h2 class="text-xl font-bold mb-4">合言葉を入力してください</h2>
-            <input type="password" id="password-input" class="w-full p-4 border-2 border-gray-200 rounded-xl mb-4 text-center text-2xl" placeholder="****">
-            <button onclick="checkPassword()" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg active:bg-blue-700">認証する</button>
-            <p id="error-msg" class="mt-4 text-red-500 font-bold hidden">合言葉が違います</p>
+        <div class="bg-white rounded-2xl p-8 w-full text-center shadow-sm">
+            <div class="text-4xl mb-4">🔒</div>
+            <h2 class="text-lg font-bold text-gray-800 mb-6">合言葉を入力してください</h2>
+            <input type="password" id="password-input" class="w-full p-4 border border-gray-200 rounded-xl mb-4 text-center text-2xl bg-gray-50 tracking-widest" placeholder="••••">
+            <button onclick="checkPassword()" class="w-full py-4 bg-[#007AFF] text-white rounded-xl font-bold text-md active:opacity-80 transition-opacity">認証する</button>
+            <p id="error-msg" class="mt-4 text-sm text-red-500 font-bold hidden">合言葉が違います</p>
         </div>
     </div>
 
     <div id="main-content" class="hidden">
-        <header class="flex flex-col items-center mb-6">
-            <div class="flex items-center w-full relative">
-                <button id="global-back-btn" class="hidden absolute left-0 p-2 bg-white rounded-full shadow text-gray-600 active:bg-gray-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <h1 class="text-2xl font-black text-gray-800 mx-auto">キッチンメモ</h1>
-            </div>
-            <div id="top-update-banner" class="mt-2 px-4 py-1 bg-white rounded-full shadow-sm border border-gray-200">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Latest Update:</span>
-                <span id="update-time-display" class="text-xs font-black text-blue-600 ml-1">---</span>
-            </div>
-        </header>
+        <header class="flex items-center justify-between mb-5 px-1">
+            <button id="back-btn" onclick="goBack()" class="text-[#007AFF] font-bold text-md hidden flex items-center">
+                ‹ 戻る
+            </button>
+            <h1 id="page-title" class="text-2xl font-bold text-gray-900 transition-all">キッチンメモ</h1>
+            <div class="w-10"></div> </header>
 
-        <div id="difficulty-select" class="grid gap-3">
-            <button onclick="selectCategory('single_star')" class="p-5 card border-b-4 border-blue-500 text-xl font-bold text-blue-700 flex justify-between items-center">🐟 刺し場</button>
-            <button onclick="selectCategory('double_star')" class="p-5 card border-b-4 border-orange-500 text-xl font-bold text-orange-700 flex justify-between items-center">🍟 揚げ場</button>
-            <button onclick="selectCategory('triple_star')" class="p-5 card border-b-4 border-red-500 text-xl font-bold text-red-700 flex justify-between items-center">🔥 焼き場</button>
-            <button onclick="selectCategory('portion')" class="p-5 card border-b-4 border-green-500 text-xl font-bold text-green-700 flex justify-between items-center">⚖️ ポーション</button>
-            <button onclick="showShiftScreen()" class="p-5 card border-b-4 border-purple-500 text-xl font-bold text-purple-700 flex justify-between items-center">📅 シフト表</button>
+        <div id="menu-categories" class="space-y-3">
+            <button onclick="openCategory('刺し場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
+                <span>🐟 刺し場</span><span class="text-gray-300">›</span>
+            </button>
+            <button onclick="openCategory('揚げ場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
+                <span>🍟 揚げ場</span><span class="text-gray-300">›</span>
+            </button>
+            <button onclick="openCategory('焼き場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
+                <span>🔥 焼き場</span><span class="text-gray-300">›</span>
+            </button>
+            <button onclick="openCategory('ポーション')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
+                <span>⚖️ ポーション</span><span class="text-gray-300">›</span>
+            </button>
+            <button onclick="openCategory('シフト表')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
+                <span>📅 シフト表</span><span class="text-gray-300">›</span>
+            </button>
         </div>
 
-        <div id="menu-list-screen" class="hidden">
-            <h2 id="menu-list-heading" class="text-xl font-bold mb-4 px-2 text-gray-700"></h2>
-            <div id="accordion-area" class="grid gap-2"></div>
-            <button onclick="handleBack()" class="mt-8 w-full py-4 bg-gray-800 text-white rounded-xl font-bold">戻る</button>
+        <div id="list-view" class="hidden space-y-2">
+            <div id="accordion-container" class="space-y-2"></div>
         </div>
 
-        <div id="shift-screen" class="hidden">
-            <div class="card p-5 border-t-8 border-purple-500 text-center">
-                <h3 class="text-2xl font-black text-purple-700">📅 シフト表</h3>
-                <div class="mb-4 inline-block px-3 py-1 bg-purple-50 rounded-full border border-purple-100">
-                    <span id="shift-update-time-display" class="text-[10px] font-bold text-purple-600">---</span>
-                </div>
-                
+        <div id="shift-view" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm text-center">
+                <span class="text-[11px] font-bold text-purple-600 block mb-3 bg-purple-50 py-1 rounded-full">2024/03/12 18:00 更新</span>
                 <div class="space-y-4 text-left">
                     <div>
-                        <span class="text-xs font-bold text-purple-500 ml-1">▼ 1日 〜 15日</span>
-                        <div class="mt-1 bg-gray-100 rounded-lg min-h-[200px] flex items-center justify-center overflow-hidden border-2 border-purple-200">
-                            <img id="shift-display-img-1" src="" class="w-full h-auto" alt="読み込み中..." onclick="window.open(this.src, '_blank')">
-                        </div>
+                        <span class="text-xs font-bold text-gray-400 block mb-1">▼ 1日 〜 15日</span>
+                        <img src="https://drive.google.com/thumbnail?authuser=0&sz=w1000&id=1zHH3IqT30XMp83ft2s6X7oAM-8ySHNNP" class="w-full h-auto rounded-xl border border-gray-100" alt="前半シフト">
                     </div>
                     <div>
-                        <span class="text-xs font-bold text-purple-500 ml-1">▼ 16日 〜 末日</span>
-                        <div class="mt-1 bg-gray-100 rounded-lg min-h-[200px] flex items-center justify-center overflow-hidden border-2 border-purple-200">
-                            <img id="shift-display-img-2" src="" class="w-full h-auto" alt="読み込み中..." onclick="window.open(this.src, '_blank')">
-                        </div>
+                        <span class="text-xs font-bold text-gray-400 block mb-1">▼ 16日 〜 末日</span>
+                        <img src="https://drive.google.com/thumbnail?authuser=0&sz=w1000&id=1J-N8B4IvyShS9qhQTNpTsvL67wxqFihk" class="w-full h-auto rounded-xl border border-gray-100" alt="後半シフト">
                     </div>
                 </div>
-                <button onclick="handleBack()" class="mt-8 w-full py-4 bg-gray-800 text-white rounded-xl font-bold">メニューに戻る</button>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    // ==========================================
-    // 管理者設定エリア（ここを自由に書き換えてください）
-    // ==========================================
-    const CORRECT_PASSWORD = '1405'; 
-    const SHIFT_IMAGE_URL_1 = 'https://drive.google.com/file/d/1zHH3IqT30XMp83ft2s6X7oAM-8ySHNNP/view?usp=drive_link'; 
-    const SHIFT_IMAGE_URL_2 = 'https://drive.google.com/file/d/1J-N8B4IvyShS9qhQTNpTsvL67wxqFihk/view?usp=drive_link'; 
-    const SHIFT_UPDATE_TIME = '2024/03/12 18:00 更新'; 
+    const CORRECT_PASSWORD = "1405";
+
+    // 業務データ（シンプルで見やすいテキストに変更）
+    const data = {
+        "刺し場": [
+            { name: "枝豆", type: "text", text: "500Wで2分温め、皿に盛って塩をふる" },
+            { name: "冷やしトマト", type: "steps", steps: ["トマト半分に切りヘタを取る", "6等分にスライス", "マヨネーズとサラダを添える"] },
+            { name: "たこわさ / 梅クラゲ", type: "text", text: "器に半分にした大葉を敷き、各30g盛り付け" },
+            { name: "チャンジャ", type: "text", text: "半分にした大葉を敷き、30g盛り付け。ネギを散らす" },
+            { name: "とりかわぽん", type: "steps", steps: ["大葉を敷く", "オニオンスライスを乗せる", "とりかわを盛り付ける", "ネギ、大根おろしを乗せ、ポン酢をかける"] },
+            { name: "えのきぽん", type: "steps", steps: ["500Wで1分温める", "えのきを盛り付ける", "ネギ、大根おろしを乗せ、ポン酢をかける"] },
+            { name: "無限ピーマン", type: "text", text: "ごま油、塩、塩昆布、白ごまで和える" },
+            { name: "漬物盛合せ", type: "text", text: "たくあん30g、かっぱ30g、しば漬け30g" },
+            { name: "長芋わさび", type: "text", text: "器に長いもを80g盛り、刻みのりを乗せる" },
+            { name: "たたききゅうり", type: "steps", steps: ["皿にたたききゅうりを盛る", "しおだれをかける", "ゴマを振る"] },
+            { name: "とりのたたき", type: "steps", steps: ["器にオニスラを盛り、大葉を乗せる", "たたきを4枚並べる", "小皿にネギ、しょうがを添える"] },
+            { name: "鶏わさび和え / 梅肉和え", type: "steps", steps: ["皿に大葉とオニスラを盛る", "ユッケ60gにわさび醤油（または梅肉）を混ぜて盛る", "のりを乗せる"] },
+            { name: "鶏ユッケ / 鶏塩ユッケ", type: "steps", steps: ["皿に大葉とオニスラを盛る", "ユッケ60gを盛る", "ユッケタレ（または塩だれ）をかける", "生うずら、ネギ、白ごまを乗せる"] },
+            { name: "出汁巻きたまご", type: "text", text: "600Wで4分温め、笹葉の上に盛る。おろし大根を添える" },
+            { name: "しめさば", type: "text", text: "水で解凍後、8等分にして炙る。オニスラ・大葉の上に盛り、わさびを添える" },
+            { name: "サラダ（蒸し鶏/豆腐塩昆布/温玉シーザー）", type: "text", text: "ベース：サラダ、オニスラ、ミニトマト半分2個\n・蒸し鶏：ささみ1P＋胡麻ドレ\n・豆腐：豆腐4等分＋塩昆布＋和風ドレ＋かつお節\n・シーザー：温玉1個＋クルトン＋粉チーズ＋シーザードレ" }
+        ],
+        "揚げ場": [
+            { name: "ポテトフライ", type: "text", text: "2分30秒揚げる。塩をふり、ケチャップを添える" },
+            { name: "さつまバター", type: "text", text: "4分揚げる。バター、ハチミツ、パセリをかける" },
+            { name: "もろこし唐揚げ", type: "text", text: "3分揚げる。塩、パセリを振る" },
+            { name: "名古屋風手羽先唐揚げ", type: "steps", steps: ["手羽先を500Wで1分温める", "片栗粉をまぶして5分揚げる", "キャベツの上に盛り、手羽タレ、コショウ、白ごま"] },
+            { name: "なんこつ唐揚げ", type: "text", text: "唐揚げ粉をまぶして2分揚げる。レモンを添える" },
+            { name: "かわパリ", type: "text", text: "500Wで1分温め、片栗粉＋唐揚げ粉で2分揚げる。レモンを添える" },
+            { name: "じゃこ天", type: "text", text: "両面を3分揚げる。天紙の上に6等分にして盛り、ネギ、しょうがを添える" },
+            { name: "若鶏のからあげ", type: "text", text: "片栗粉をまぶして5分揚げる。サラダの上に盛り、レモン、マヨネーズを添える" },
+            { name: "チキン南蛮", type: "steps", steps: ["500Wで1分温め、5分揚げる", "4等分に切ってサラダの上に盛る", "タルタルソース、南蛮酢、レモン、パセリをかける"] }
+        ],
+        "焼き場": [
+            { name: "肉巻き（レタス / ヤンコン / アスパラ / エビ / モッツァレラ / オクラ）", type: "text", text: "味付け：塩コショウ" },
+            { name: "肉巻き（うずら / なすチーズ / 白ネギ）", type: "text", text: "味付け：タレ" },
+            { name: "えのき肉巻き", type: "text", text: "味付け：ポン酢" },
+            { name: "大葉肉巻き", type: "text", text: "味付け：梅肉" },
+            { name: "トマトチーズ肉巻き", type: "text", text: "味付け：バジル" },
+            { name: "長芋明太マヨ肉巻き", type: "text", text: "味付け：明太マヨ" }
+        ],
+        "ポーション": [
+            { name: "刺し場・野菜", type: "rows", rows: ["ピーマン：40g", "きゅうり：85-90g", "枝豆：100g", "えのぽん：60g", "蒸し鶏：50g"] },
+            { name: "揚げ場・一品", type: "rows", rows: ["角煮：90g（3個）", "ポテトフライ：150g", "手羽先：3個", "とうもろこし：3個", "軟骨唐揚げ：100g", "かわぱり：100g", "里芋：8個", "ウインナー：6個"] },
+            { name: "焼き場・肉", type: "rows", rows: ["エイヒレ：30g", "焼きおにぎり：160g", "サザエ：2個", "ホタテ：1個", "ホルモン：150g", "つくね：50g"] },
+            { name: "釜飯・雑炊・調味料", type: "rows", rows: ["浸水米：200g", "雑炊・釜飯用 鶏肉：50g", "釜野菜(あげ・ゴボウ)：各10g", "雑炊エノキ：15g", "赤味噌：90g", "白味噌：90g（ニンニク5g、バター2個）", "凍結果実：40g"] }
+        ]
+    };
 
     function checkPassword() {
         const input = document.getElementById('password-input').value;
         if (input === CORRECT_PASSWORD) {
             document.getElementById('lock-screen').classList.add('hidden');
             document.getElementById('main-content').classList.remove('hidden');
-            // 両方の表示箇所に時間をセット
-            document.getElementById('update-time-display').textContent = SHIFT_UPDATE_TIME;
-            document.getElementById('shift-update-time-display').textContent = SHIFT_UPDATE_TIME;
         } else {
-            document.getElementById('error-msg').classList.remove('hidden');
-            document.getElementById('lock-screen').classList.add('shake');
-            setTimeout(() => document.getElementById('lock-screen').classList.remove('shake'), 500);
+            const error = document.getElementById('error-msg');
+            error.classList.remove('hidden');
         }
     }
 
-    function selectCategory(diff) {
-        currentDifficulty = diff;
-        renderAccordionList();
-    }
+    function openCategory(catName) {
+        document.getElementById('menu-categories').classList.add('hidden');
+        document.getElementById('page-title').textContent = catName;
+        document.getElementById('back-btn').classList.remove('hidden');
 
-    function renderAccordionList() {
-        const area = document.getElementById('accordion-area');
-        area.innerHTML = '';
-        const filtered = quizzes.filter(q => q.difficulty === currentDifficulty);
-        const names = { 'single_star': '刺し場', 'double_star': '揚げ場', 'triple_star': '焼き場', 'portion': 'ポーション' };
-        document.getElementById('menu-list-heading').textContent = `【${names[currentDifficulty]}】`;
+        if (catName === "シフト表") {
+            document.getElementById('shift-view').classList.remove('hidden');
+            return;
+        }
 
-        filtered.forEach((quiz, index) => {
-            const container = document.createElement('div');
-            container.className = 'card menu-item overflow-hidden border-l-4 border-transparent transition-all';
-            const accentColors = { 'single_star': 'border-blue-500', 'double_star': 'border-orange-500', 'triple_star': 'border-red-500', 'portion': 'border-green-500' };
+        const container = document.getElementById('accordion-container');
+        container.innerHTML = '';
+        document.getElementById('list-view').classList.remove('hidden');
+
+        data[catName].forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 transition-all';
 
             const btn = document.createElement('button');
-            btn.className = 'w-full text-left p-4 flex justify-between items-center font-bold text-gray-700 active:bg-gray-50';
-            btn.innerHTML = `<span>${quiz.name}</span><span class="text-xs transition-transform arrow">▼</span>`;
-            
+            btn.className = 'w-full text-left p-4 font-bold text-gray-800 flex justify-between items-center active:bg-gray-50';
+            btn.innerHTML = `<span>${item.name}</span><span class="text-xs text-gray-400 transition-transform duration-200 arrow">▼</span>`;
+
             const content = document.createElement('div');
-            content.className = 'accordion-content px-4';
-            
-            if (currentDifficulty === 'portion') {
-                let html = '<div class="space-y-1">';
-                quiz.data.forEach(d => {
-                    html += `<div class="portion-row flex justify-between"><span>${d.item}</span><span class="font-bold text-green-600">${d.amount}${d.unit}</span></div>`;
+            content.className = 'accordion-content px-4 text-sm text-gray-600 border-t border-gray-50';
+
+            if (item.type === "text") {
+                content.innerHTML = `<div class="py-2 leading-relaxed whitespace-pre-wrap">${item.text}</div>`;
+            } else if (item.type === "steps") {
+                let html = '<div class="py-2 space-y-2">';
+                item.steps.forEach((step, i) => {
+                    html += `<div class="flex"><span class="text-[#007AFF] font-bold mr-2">${i+1}.</span><span>${step}</span></div>`;
                 });
                 content.innerHTML = html + '</div>';
-            } else if (currentDifficulty === 'triple_star') {
-                content.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded-xl text-center font-bold">味付け：${quiz.answer}</div>`;
-            } else if (quiz.type === 'multiple_choice') {
-                content.innerHTML = `<div class="p-4 bg-blue-50 text-blue-800 rounded-xl text-center font-bold">${quiz.answer}</div>`;
-            } else {
-                let html = '<div class="space-y-2">';
-                quiz.steps.forEach((s, i) => {
-                    html += `<div class="step-bubble p-3 rounded-lg text-sm"><span class="font-bold text-blue-500 mr-2">${i+1}.</span>${s}</div>`;
+            } else if (item.type === "rows") {
+                let html = '<div class="py-2 divide-y divide-gray-50">';
+                item.rows.forEach(row => {
+                    html += `<div class="py-2 flex justify-between"><span>${row.split('：')[0]}</span><span class="font-bold text-gray-800">${row.split('：')[1] || ''}</span></div>`;
                 });
                 content.innerHTML = html + '</div>';
             }
 
             btn.onclick = () => {
                 const isOpen = content.classList.contains('open');
+                
+                // 他の開いているアコーディオンを全部閉じる
                 document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
-                document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active', accentColors[currentDifficulty]));
                 document.querySelectorAll('.arrow').forEach(a => a.style.transform = 'rotate(0deg)');
 
                 if (!isOpen) {
                     content.classList.add('open');
-                    container.classList.add('active', accentColors[currentDifficulty]);
                     btn.querySelector('.arrow').style.transform = 'rotate(180deg)';
-                    setTimeout(() => container.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
                 }
             };
 
-            container.appendChild(btn);
-            container.appendChild(content);
-            area.appendChild(container);
+            card.appendChild(btn);
+            card.appendChild(content);
+            container.appendChild(card);
         });
-        showScreen('menu-list-screen');
     }
 
-    function showShiftScreen() {
-        renderShiftImage('shift-display-img-1', SHIFT_IMAGE_URL_1);
-        renderShiftImage('shift-display-img-2', SHIFT_IMAGE_URL_2);
-        showScreen('shift-screen');
+    function goBack() {
+        document.getElementById('menu-categories').classList.remove('hidden');
+        document.getElementById('list-view').classList.add('hidden');
+        document.getElementById('shift-view').classList.add('hidden');
+        document.getElementById('back-btn').classList.add('hidden');
+        document.getElementById('page-title').textContent = "キッチンメモ";
     }
-
-    function renderShiftImage(elementId, rawUrl) {
-        const img = document.getElementById(elementId);
-        let fileId = "";
-        if (rawUrl.includes('/d/')) fileId = rawUrl.split('/d/')[1].split('/')[0];
-        else if (rawUrl.includes('id=')) fileId = rawUrl.split('id=')[1].split('&')[0];
-        img.src = fileId ? `https://drive.google.com/thumbnail?authuser=0&sz=w1000&id=${fileId}` : rawUrl;
-    }
-
-    function showScreen(id) {
-        ['difficulty-select', 'menu-list-screen', 'shift-screen'].forEach(s => {
-            const el = document.getElementById(s);
-            if(el) el.classList.toggle('hidden', s !== id);
-        });
-        document.getElementById('global-back-btn').classList.toggle('hidden', id === 'difficulty-select');
-        document.getElementById('top-update-banner').classList.toggle('hidden', id !== 'difficulty-select');
-    }
-
-    function handleBack() { showScreen('difficulty-select'); }
-    document.getElementById('global-back-btn').onclick = handleBack;
-
-    // メニューデータ
-    const quizzes = [
-        // 刺し場
-        { "difficulty": "single_star", "name": "枝豆", "type": "multiple_choice", "answer": '500W 2分 皿に盛り付けて塩をふる' },
-        { "difficulty": "single_star", "name": "冷やしトマト", "type": "reordering", "steps": ['トマト１個を半分に切りヘタ部分を取り除く','トマトを６等分に切る','マヨネーズとサラダを添える'] },
-        { "difficulty": "single_star", "name": "たこわさ", "type": "multiple_choice", "answer": '半分にした大葉 たこわさ(30g)を盛り付け' },
-        { "difficulty": "single_star", "name": "梅クラゲ", "type": "multiple_choice", "answer": '半分にした大葉 梅クラゲ(30g)を盛り付け' },
-        { "difficulty": "single_star", "name": "チャンジャ", "type": "multiple_choice", "answer": '半分にした大葉 チャンジャ(30g)を盛り付け、ネギ〆' },
-        { "difficulty": "single_star", "name": "とりかわぽん", "type": "reordering", "steps": ['大葉を敷く', 'オニスラ', 'とりかわ盛りつけ', 'ネギ、大根おろし','ポン酢'] },
-        { "difficulty": "single_star", "name": "えのきぽん", "type": "reordering", "steps": ['500W1分', 'えのき盛りつけ', 'ネギ、大根おろし','ポン酢'] },
-        { "difficulty": "single_star", "name": "無限ピーマン", "type": "multiple_choice", "answer": 'ごま油、塩、塩昆布、白ごま' },
-        { "difficulty": "single_star", "name": "漬物盛合せ", "type": "multiple_choice", "answer": 'たくあん30g、かっぱ30g、しば漬け30g' },
-        { "difficulty": "single_star", "name": "長芋わさび", "type": "multiple_choice", "answer": '器に長いもを80g盛り、刻みのり〆' },
-        { "difficulty": "single_star", "name": "たたききゅうり", "type": "reordering", "steps": ['皿にたたききゅうりを盛る', 'しおだれをかける', 'ゴマ〆'] },
-        { "difficulty": "single_star", "name": "とりのたたき", "type": "reordering", "steps": ['器にオニスラを盛る','大葉を乗せる','たたき4枚', '小皿にネギ、しょうが'] },
-        { "difficulty": "single_star", "name": "鶏わさび和え", "type": "reordering", "steps": ['皿に大葉を乗せる','オニスラを盛る' , 'ユッケ60Gわさびと醤油混ぜて盛り付け','のり'] },
-        { "difficulty": "single_star", "name": "鶏梅肉和え", "type": "reordering", "steps": ['皿に大葉を乗せる','オニスラを盛る' , 'ユッケ60G梅肉を混ぜて盛り付ける','のり'] },
-        { "difficulty": "single_star", "name": "鶏ユッケ", "type": "reordering", "steps": ['皿に大葉を乗せる','オニスラを盛る' , 'ユッケ60g盛る', 'ユッケタレをかける','生うずら','ネギと白ごま'] },
-        { "difficulty": "single_star", "name": "鶏塩ユッケ", "type": "reordering", "steps": ['皿に大葉を乗せる','オニスラを盛る' , 'ユッケ60g盛る', '塩だれをかける','生うずら','ネギと白ごま'] },
-        { "difficulty": "single_star", "name": "出汁巻きたまご", "type": "multiple_choice", "answer": '600W 4分 笹葉の上に盛り付けて おろし大根 〆' },
-        { "difficulty": "single_star", "name": "しめさば", "type": "multiple_choice", "answer": '水で解けたら8等分にして炙る オニスラ、大葉の上に盛り付けて わさび' },
-        { "difficulty": "single_star", "name": "蒸し鶏サラダ", "type": "multiple_choice", "answer": 'サラダ、オニスラ、半分にしたミニトマト（2個）にささみ1ポーション 胡麻ドレッシング〆' },
-        { "difficulty": "single_star", "name": "豆腐と塩昆布のサラダ", "type": "multiple_choice", "answer": 'サラダ、オニスラ、半分にしたミニトマト（2個）に4等分の豆腐と塩昆布 和風ドレッシング、かつお節〆' },
-        { "difficulty": "single_star", "name": "温玉シーザーサラダ", "type": "multiple_choice", "answer": 'サラダ、オニスラ、半分にしたミニトマト（2個）に温玉１個、クルトン、粉チーズかけて シーザードレッシング〆' },
-        // 揚げ場
-        { "difficulty": "double_star", "name": "ポテトフライ", "type": "multiple_choice", "answer": "2分30秒間揚げる 塩ふりかけ、ケチャップ" },
-        { "difficulty": "double_star", "name": "さつまバター", "type": "multiple_choice", "answer": '4分間揚げる バター ハチミツとパセリ' },
-        { "difficulty": "double_star", "name": "もろこし唐揚げ", "type": "multiple_choice", "answer": '3分間揚げる 塩ふりかけ パセリ' },
-        { "difficulty": "double_star", "name": "名古屋風手羽先唐揚げ", "type": "multiple_choice", "answer": '500W1分 片栗粉5分間揚げる キャベツの上に盛り付けて手羽タレ、コショウ、白ごま' },
-        { "difficulty": "double_star", "name": "なんこつ唐揚げ", "type": "multiple_choice", "answer": "唐揚げ粉2分間揚げる レモン" },
-        { "difficulty": "double_star", "name": "かわパリ", "type": "multiple_choice", "answer": "500W1分 片栗粉+唐揚げ粉2分間揚げる レモン" },
-        { "difficulty": "double_star", "name": "じゃこ天", "type": "multiple_choice", "answer": "両面3分間揚げる 天紙の上に６等分してネギ、しょうが" },
-        { "difficulty": "double_star", "name": "若鶏のからあげ", "type": "multiple_choice", "answer": "片栗粉5分間揚げる サラダの上に盛り付け レモン、マヨネーズ" },
-        { "difficulty": "double_star", "name": "チキン南蛮", "type": "multiple_choice", "answer": "500W1分 5分間揚げる 4等分にしてサラダの上に盛り付け、タルタル 南蛮酢 レモン、パセリ" },
-        // 焼き場
-        { "difficulty": "triple_star", "name": "レタス巻き", "answer": '塩コショウ' },
-        { "difficulty": "triple_star", "name": "ヤンコン巻き", "answer": '塩コショウ' },
-        { "difficulty": "triple_star", "name": "えのき巻き", "answer": 'ポン酢' },
-        { "difficulty": "triple_star", "name": "うずら巻き", "answer": 'タレ' },
-        { "difficulty": "triple_star", "name": "大葉巻き", "answer": '梅肉' },
-        { "difficulty": "triple_star", "name": "アスパラ巻き", "answer": '塩コショウ' },
-        { "difficulty": "triple_star", "name": "トマトチーズ巻き", "answer": 'バジル' },
-        { "difficulty": "triple_star", "name": "なすチーズ巻き", "answer": 'タレ' },
-        { "difficulty": "triple_star", "name": "白ネギ巻き", "answer": 'タレ' },
-        { "difficulty": "triple_star", "name": "えびの肉巻き(タルタル)", "answer": '塩コショウ' },
-        { "difficulty": "triple_star", "name": "モッツァレラチーズ巻き", "answer": '塩コショウ' },
-        { "difficulty": "triple_star", "name": "長芋明太マヨ巻き", "answer": '明太マヨ' },
-        { "difficulty": "triple_star", "name": "オクラの肉巻き", "answer": '塩コショウ' },
-        // ポーション
-        { "difficulty": "portion", "name": "刺し場・野菜", "data": [
-            { "item": "ピーマン", "amount": "40", "unit": "g" },
-            { "item": "きゅうり", "amount": "85-90", "unit": "g" },
-            { "item": "枝豆", "amount": "100", "unit": "g" },
-            { "item": "えのぽん", "amount": "60", "unit": "g" },
-            { "item": "蒸し鶏", "amount": "50", "unit": "g" }
-        ]},
-        { "difficulty": "portion", "name": "揚げ場・一品", "data": [
-            { "item": "角煮", "amount": "90/3", "unit": "g/個" },
-            { "item": "ポテトフライ", "amount": "150", "unit": "g" },
-            { "item": "手羽先", "amount": "3", "unit": "個" },
-            { "item": "とうもろこし", "amount": "3", "unit": "個" },
-            { "item": "軟骨唐揚げ", "amount": "100", "unit": "g" },
-            { "item": "かわぱり", "amount": "100", "unit": "g" },
-            { "item": "里芋", "amount": "8", "unit": "個" },
-            { "item": "ウインナー", "amount": "6", "unit": "個" }
-        ]},
-        { "difficulty": "portion", "name": "焼き場・肉", "data": [
-            { "item": "エイヒレ", "amount": "30", "unit": "g" },
-            { "item": "焼きおにぎり", "amount": "160", "unit": "g" },
-            { "item": "サザエ", "amount": "2", "unit": "個" },
-            { "item": "ホタテ", "amount": "1", "unit": "個" },
-            { "item": "ホルモン", "amount": "150", "unit": "g" },
-            { "item": "つくね", "amount": "50", "unit": "g" }
-        ]},
-        { "difficulty": "portion", "name": "釜飯・雑炊・調味料", "data": [
-            { "item": "浸水米", "amount": "200", "unit": "g" },
-            { "item": "雑炊・釜飯 鶏肉", "amount": "50", "unit": "g" },
-            { "item": "釜野菜(あげ・ゴボウ)", "amount": "各10", "unit": "g" },
-            { "item": "雑炊エノキ", "amount": "15", "unit": "g" },
-            { "item": "赤味噌", "amount": "90", "unit": "g" },
-            { "item": "白味噌(ニンニク5gバター2個)", "amount": "90", "unit": "g" },
-            { "item": "凍結果実", "amount": "40", "unit": "g" }
-        ]}
-    ];
 </script>
 </body>
 </html>
