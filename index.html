@@ -15,14 +15,14 @@
         .accordion-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.25s ease-out, opacity 0.2s;
+            transition: max-height 0.3s ease-out, opacity 0.2s;
             opacity: 0;
         }
         .accordion-content.open {
-            max-height: 800px;
+            max-height: 1200px; /* 写真が入っても収まるよう拡張 */
             opacity: 1;
             padding-top: 12px;
-            padding-bottom: 4px;
+            padding-bottom: 12px;
         }
     </style>
 </head>
@@ -36,23 +36,26 @@
                 ‹ 戻る
             </button>
             <h1 id="page-title" class="text-2xl font-bold text-gray-900 transition-all">キッチンメモ</h1>
-            <div class="w-10"></div> </header>
+            <div class="w-10"></div> 
+        </header>
 
+        <!-- 🗂️ カテゴリトップメニュー -->
         <div id="menu-categories" class="space-y-3">
             <button onclick="openCategory('刺し場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
-                <span> 刺し場</span><span class="text-gray-300">›</span>
+                <span>🐟 刺し場</span><span class="text-gray-300">›</span>
             </button>
             <button onclick="openCategory('揚げ場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
-                <span> 揚げ場</span><span class="text-gray-300">›</span>
+                <span>🍟 揚げ場</span><span class="text-gray-300">›</span>
             </button>
             <button onclick="openCategory('焼き場')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
-                <span> 焼き場</span><span class="text-gray-300">›</span>
+                <span>🔥 焼き場</span><span class="text-gray-300">›</span>
             </button>
             <button onclick="openCategory('ポーション')" class="w-full p-5 bg-white rounded-2xl text-left font-bold text-gray-800 shadow-sm flex justify-between items-center active:bg-gray-50">
-                <span> ポーション</span><span class="text-gray-300">›</span>
+                <span>⚖️ ポーション</span><span class="text-gray-300">›</span>
             </button>
         </div>
 
+        <!-- 📜 リスト表示エリア（アコーディオン） -->
         <div id="list-view" class="hidden space-y-2">
             <div id="accordion-container" class="space-y-2"></div>
         </div>
@@ -61,11 +64,12 @@
 
 <script>
     // 業務データ
+    // 💡 各メニューの末尾に img: "画像のURL" または "画像ファイル名.jpg" を追加できます。
     const data = {
         "刺し場": [
-            { name: "枝豆", type: "text", text: "500W2分、塩", img: "枝豆.jpg" },            
-            { name: "えのきぽんず", type: "steps", steps: ["500W1分",, "ネギ、大根 ポン酢"] },
-            { name: "無限ピーマン", type: "text", text: "ごま油、塩、塩昆布、白ごまで和える" },
+            { name: "枝豆", type: "text", text: "500W2分、塩", img: "枝豆.jpg" }, 
+            { name: "えのきぽんず", type: "steps", steps: ["500W1分", "ネギ、大根 ポン酢"] },
+            { name: "無限ピーマン", type: "text", text: "ごま油、塩、塩昆布、白ご目で和える" },
             { name: "漬物盛合せ", type: "text", text: "たくあん30g、かっぱ30g、しば漬け30g" },
             { name: "長芋わさび", type: "text", text: "80g、刻みのり" },
             { name: "たたききゅうり", type: "steps", steps: ["塩だれ、白ごま"] },
@@ -95,7 +99,7 @@
             { name: "もろこしからあげ 1P(3個)", type: "text", text: "2分半 鉄砲串 天紙 塩 パセリ" },
             { name: "ウィンナー 1P", type: "text", text: "2分 サラダ  ケチャップ " },
             { name: "じゃこ天", type: "text", text: "片面2分ずつ 天紙の上に6等分にして盛り、ネギ、しょうが" },
-            { name: "ささみあげ（人数分）", type: "text", text: "4分予熱2分 サラダ 梅肉" },
+            { name: "ささみあげ（人数分）", type: "text", text: "4分予熱2分 サラダ 梅肉" }
         ],
         "焼き場": [
             { name: "レタス / ヤンコン / アスパラ / エビ / モッツァレラ / オクラ肉巻き", type: "text", text: "味付け：塩コショウ" },
@@ -128,26 +132,46 @@
 
             const btn = document.createElement('button');
             btn.className = 'w-full text-left p-4 font-bold text-gray-800 flex justify-between items-center active:bg-gray-50';
-            btn.innerHTML = `<span>${item.name}</span><span class="text-xs text-gray-400 transition-transform duration-200 arrow">▼</span>`;
+            btn.innerHTML = `
+                <span class="flex items-center gap-2">
+                    ${item.name}
+                    ${item.img ? '<span class="text-xs bg-blue-50 text-[#007AFF] px-1.5 py-0.5 rounded-full font-normal">📷 写真あり</span>' : ''}
+                </span>
+                <span class="text-xs text-gray-400 transition-transform duration-200 arrow">▼</span>
+            `;
 
             const content = document.createElement('div');
             content.className = 'accordion-content px-4 text-sm text-gray-600 border-t border-gray-50';
 
-            if (item.type === "text") {
-                content.innerHTML = `<div class="py-2 leading-relaxed whitespace-pre-wrap">${item.text}</div>`;
-            } else if (item.type === "steps") {
-                let html = '<div class="py-2 space-y-2">';
-                item.steps.forEach((step, i) => {
-                    html += `<div class="flex"><span class="text-[#007AFF] font-bold mr-2">${i+1}.</span><span>${step}</span></div>`;
-                });
-                content.innerHTML = html + '</div>';
-            } else if (item.type === "rows") {
-                let html = '<div class="py-2 divide-y divide-gray-50">';
-                item.rows.forEach(row => {
-                    html += `<div class="py-2 flex justify-between"><span>${row.split('：')[0]}</span><span class="font-bold text-gray-800">${row.split('：')[1] || ''}</span></div>`;
-                });
-                content.innerHTML = html + '</div>';
+            let bodyHtml = '';
+
+            // 📷 写真が指定されている場合は表示
+            if (item.img) {
+                bodyHtml += `
+                    <div class="mb-3 mt-1 overflow-hidden rounded-lg border border-gray-100">
+                        <img src="${item.img}" alt="${item.name}" class="w-full h-48 object-cover loading="lazy"">
+                    </div>
+                `;
             }
+
+            // 手順・テキストのレンダリング
+            if (item.type === "text") {
+                bodyHtml += `<div class="py-1 leading-relaxed whitespace-pre-wrap">${item.text}</div>`;
+            } else if (item.type === "steps") {
+                bodyHtml += '<div class="py-1 space-y-1.5">';
+                item.steps.forEach((step, i) => {
+                    bodyHtml += `<div class="flex"><span class="text-[#007AFF] font-bold mr-2">${i+1}.</span><span>${step}</span></div>`;
+                });
+                bodyHtml += '</div>';
+            } else if (item.type === "rows") {
+                bodyHtml += '<div class="py-1 divide-y divide-gray-50">';
+                item.rows.forEach(row => {
+                    bodyHtml += `<div class="py-1.5 flex justify-between"><span>${row.split('：')[0]}</span><span class="font-bold text-gray-800">${row.split('：')[1] || ''}</span></div>`;
+                });
+                bodyHtml += '</div>';
+            }
+
+            content.innerHTML = bodyHtml;
 
             btn.onclick = () => {
                 const isOpen = content.classList.contains('open');
